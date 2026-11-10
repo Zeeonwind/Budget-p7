@@ -1,0 +1,8 @@
+{
+  "name": "Remix Remix ระบบจัดการรายรับ-รายจ่าย (Expense Tracker)",
+  "description": "เว็บแอปพลิเคชันสำหรับจัดการรายรับและรายจ่ายรายเดือน พร้อมกราฟวิเคราะห์ข้อมูลสรุปผลและระบบล็อกอิน Firebase ด้วย Gmail",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

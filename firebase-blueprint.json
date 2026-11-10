@@ -1,0 +1,207 @@
+{
+  "entities": {
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial income or expense transaction record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the transaction"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the transaction owner"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["income", "expense"],
+          "description": "Type of transaction"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Transaction amount in THB"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Category name of the transaction"
+        },
+        "date": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Transaction date in YYYY-MM-DD format"
+        },
+        "note": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Optional note or description"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Payment method such as Cash, Transfer, Credit Card"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "type", "amount", "category", "date", "createdAt"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Monthly spending budget configuration and threshold alerts",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the budget document"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the budget owner"
+        },
+        "month": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}$",
+          "description": "Month in YYYY-MM format"
+        },
+        "totalBudget": {
+          "type": "number",
+          "description": "Total monthly spending budget limit"
+        },
+        "alertThreshold": {
+          "type": "number",
+          "description": "Spending alert trigger threshold percentage (e.g., 80 or 100)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "month", "totalBudget", "createdAt"]
+    },
+    "BillReminder": {
+      "title": "BillReminder",
+      "description": "Reminder for upcoming recurring or one-time bill payment",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the reminder"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the bill reminder owner"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 100,
+          "description": "Name or title of the bill"
+        },
+        "amount": {
+          "type": "number",
+          "description": "Expected bill amount"
+        },
+        "category": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Category for the bill"
+        },
+        "dueDate": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "description": "Due date in YYYY-MM-DD format"
+        },
+        "frequency": {
+          "type": "string",
+          "enum": ["once", "monthly", "yearly"],
+          "description": "Recurrence frequency"
+        },
+        "isPaid": {
+          "type": "boolean",
+          "description": "Whether the current bill cycle is paid"
+        },
+        "remindDaysBefore": {
+          "type": "number",
+          "description": "Days before due date to alert user"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Last update timestamp"
+        }
+      },
+      "required": ["userId", "title", "amount", "dueDate", "isPaid", "createdAt"]
+    },
+    "AppNotification": {
+      "title": "AppNotification",
+      "description": "In-app notifications for bills and budget warnings",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the notification"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID of the recipient"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 120,
+          "description": "Notification title"
+        },
+        "message": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Notification message details"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["budget_alert", "bill_reminder", "system"],
+          "description": "Notification category"
+        },
+        "isRead": {
+          "type": "boolean",
+          "description": "Read status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation timestamp"
+        }
+      },
+      "required": ["userId", "title", "message", "type", "isRead", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/transactions/{transactionId}": {
+      "schema": "#/entities/Transaction",
+      "description": "Collection of income and expense transactions for each user"
+    },
+    "/budgets/{budgetId}": {
+      "schema": "#/entities/Budget",
+      "description": "Collection of monthly budget goals and alerts"
+    },
+    "/bill_reminders/{reminderId}": {
+      "schema": "#/entities/BillReminder",
+      "description": "Collection of bill payment reminders"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "#/entities/AppNotification",
+      "description": "Collection of user alerts and reminder notifications"
+    }
+  }
+}

@@ -1,0 +1,119 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Transactions Validation
+    function isValidTransaction(data) {
+      return data.keys().hasAll(['userId', 'type', 'amount', 'category', 'date', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'type', 'amount', 'category', 'date', 'note', 'paymentMethod', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.type in ['income', 'expense']
+        && data.amount is number && data.amount > 0 && data.amount < 1000000000
+        && data.category is string && data.category.size() > 0 && data.category.size() <= 64
+        && data.date is string && data.date.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && (!('note' in data) || (data.note is string && data.note.size() <= 300))
+        && (!('paymentMethod' in data) || (data.paymentMethod is string && data.paymentMethod.size() <= 64))
+        && data.createdAt is string;
+    }
+
+    // Budget Validation
+    function isValidBudget(data) {
+      return data.keys().hasAll(['userId', 'month', 'totalBudget', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'month', 'totalBudget', 'alertThreshold', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.month is string && data.month.matches('^\\d{4}-\\d{2}$')
+        && data.totalBudget is number && data.totalBudget >= 0 && data.totalBudget < 1000000000
+        && (!('alertThreshold' in data) || (data.alertThreshold is number && data.alertThreshold >= 1 && data.alertThreshold <= 100))
+        && data.createdAt is string;
+    }
+
+    // Bill Reminders Validation
+    function isValidBillReminder(data) {
+      return data.keys().hasAll(['userId', 'title', 'amount', 'dueDate', 'isPaid', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'amount', 'category', 'dueDate', 'frequency', 'isPaid', 'remindDaysBefore', 'createdAt', 'updatedAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 100
+        && data.amount is number && data.amount > 0 && data.amount < 1000000000
+        && (!('category' in data) || (data.category is string && data.category.size() <= 64))
+        && data.dueDate is string && data.dueDate.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && (!('frequency' in data) || data.frequency in ['once', 'monthly', 'weekly', 'yearly'])
+        && data.isPaid is bool
+        && (!('remindDaysBefore' in data) || (data.remindDaysBefore is number && data.remindDaysBefore >= 0 && data.remindDaysBefore <= 30))
+        && data.createdAt is string;
+    }
+
+    // Notifications Validation
+    function isValidNotification(data) {
+      return data.keys().hasAll(['userId', 'title', 'message', 'type', 'isRead', 'createdAt'])
+        && data.keys().hasOnly(['id', 'userId', 'title', 'message', 'type', 'isRead', 'relatedId', 'createdAt'])
+        && data.userId is string && data.userId == request.auth.uid
+        && data.title is string && data.title.size() > 0 && data.title.size() <= 120
+        && data.message is string && data.message.size() <= 300
+        && data.type in ['budget_alert', 'bill_reminder', 'system']
+        && data.isRead is bool
+        && (!('relatedId' in data) || (data.relatedId is string && data.relatedId.size() <= 128))
+        && data.createdAt is string;
+    }
+
+    // Transactions Collection Rules
+    match /transactions/{transactionId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(transactionId) && isValidTransaction(request.resource.data);
+      allow update: if isSignedIn() && isValidId(transactionId) && resource.data.userId == request.auth.uid && isValidTransaction(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(transactionId) && resource.data.userId == request.auth.uid;
+    }
+
+    // Budgets Collection Rules
+    match /budgets/{budgetId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(budgetId) && isValidBudget(request.resource.data);
+      allow update: if isSignedIn() && isValidId(budgetId) && resource.data.userId == request.auth.uid && isValidBudget(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(budgetId) && resource.data.userId == request.auth.uid;
+    }
+
+    // Bill Reminders Collection Rules
+    match /bill_reminders/{reminderId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(reminderId) && isValidBillReminder(request.resource.data);
+      allow update: if isSignedIn() && isValidId(reminderId) && resource.data.userId == request.auth.uid && isValidBillReminder(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(reminderId) && resource.data.userId == request.auth.uid;
+    }
+
+    // Notifications Collection Rules
+    match /notifications/{notificationId} {
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(notificationId) && isValidNotification(request.resource.data);
+      allow update: if isSignedIn() && isValidId(notificationId) && resource.data.userId == request.auth.uid && isValidNotification(request.resource.data);
+      allow delete: if isSignedIn() && isValidId(notificationId) && resource.data.userId == request.auth.uid;
+    }
+
+    // Connection testing doc
+    match /test/{docId} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+  }
+}
